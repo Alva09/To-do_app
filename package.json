@@ -1,0 +1,44 @@
+{
+  "name": "prueba-tec",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Ionic Angular To-Do con Cordova",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "ionic:build": "ng build",
+    "ionic:serve": "ng serve",
+    "cordova:prepare": "ionic cordova prepare",
+    "cordova:run:android": "ionic cordova run android",
+    "cordova:run:ios": "ionic cordova run ios",
+    "cordova:build:android": "ionic cordova build android --release",
+    "cordova:build:ios": "ionic cordova build ios"
+  },
+  "devDependencies": {
+    "@ionic/cli": "^7.2.1",
+    "cordova": "^12.0.0",
+    "cordova-android": "^13.0.0",
+    "cordova-ios": "^8.0.1",
+    "cordova-plugin-device": "2.0.2",
+    "cordova-plugin-firebasex": "^20.0.1",
+    "cordova-plugin-ionic-keyboard": "^2.0.5",
+    "cordova-plugin-ionic-webview": "^5.0.0",
+    "cordova-plugin-splashscreen": "5.0.2",
+    "cordova-plugin-statusbar": "^2.4.2"
+  },
+  "cordova": {
+    "platforms": [
+      "android",
+      "ios"
+    ],
+    "plugins": {
+      "cordova-plugin-statusbar": {},
+      "cordova-plugin-device": {},
+      "cordova-plugin-splashscreen": {},
+      "cordova-plugin-ionic-webview": {},
+      "cordova-plugin-ionic-keyboard": {},
+      "cordova-plugin-firebasex": {}
+    }
+  }
+}

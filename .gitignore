@@ -1,0 +1,21 @@
+# Cordova / Ionic
+platforms/
+plugins/
+www/*
+!www/index.html
+
+# Node
+node_modules/
+npm-debug.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# macOS
+.DS_Store
+
+# Angular
+.angular/
+dist/

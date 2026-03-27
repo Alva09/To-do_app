@@ -1,0 +1,8 @@
+{
+  "name": "prueba-tec",
+  "integrations": {
+    "cordova": {}
+  },
+  "type": "angular",
+  "id": "a9be09a6"
+}
