@@ -1,0 +1,44 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tasks"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Categorías</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-list>
+    @for (c of categories; track trackByCategoryId($index, c)) {
+      <ion-item-sliding>
+        <ion-item>
+          <ion-label>
+            @if (c.color) {
+              <span class="swatch" [style.background]="c.color"></span>
+            }
+            <h2>{{ c.name }}</h2>
+            <p>ID: {{ c.id }}</p>
+          </ion-label>
+          <ion-button slot="end" fill="clear" (click)="openEdit(c)">
+            Editar
+          </ion-button>
+        </ion-item>
+        <ion-item-options side="end">
+          <ion-item-option color="danger" (click)="confirmDelete(c)">
+            Borrar
+          </ion-item-option>
+        </ion-item-options>
+      </ion-item-sliding>
+    } @empty {
+      <ion-item>
+        <ion-label>No hay categorías. Añade una con +.</ion-label>
+      </ion-item>
+    }
+  </ion-list>
+
+  <ion-fab slot="fixed" vertical="bottom" horizontal="end">
+    <ion-fab-button (click)="openCreate()">
+      <span class="fab-plus" aria-hidden="true">+</span>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>

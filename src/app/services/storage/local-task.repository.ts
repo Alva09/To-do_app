@@ -1,26 +1,59 @@
 import { Injectable } from '@angular/core';
+import { Storage } from '@ionic/storage-angular';
 import type { Observable } from 'rxjs';
+import { from } from 'rxjs';
+import { map, switchMap } from 'rxjs/operators';
 import { TaskRepository } from '../../core/interfaces/task.repository';
 import type { Task } from '../../core/models/task.model';
+import { STORAGE_KEYS } from './storage-keys';
 
-/**
- * Persistencia local (Ionic Storage, IndexedDB, SQLite/Capacitor, etc.).
- */
 @Injectable()
 export class LocalTaskRepository extends TaskRepository {
+  private init: Promise<void> | null = null;
+
+  constructor(private readonly storage: Storage) {
+    super();
+  }
+
+  private ensureReady(): Promise<void> {
+    this.init ??= this.storage.create().then(() => undefined);
+    return this.init;
+  }
+
   getAll(): Observable<Task[]> {
-    throw new Error('Implementar con @ionic/storage-angular u otro proveedor');
+    return from(this.ensureReady()).pipe(
+      switchMap(() => from(this.storage.get(STORAGE_KEYS.tasks))),
+      map((rows) => (Array.isArray(rows) ? (rows as Task[]) : [])),
+    );
   }
 
-  getById(): Observable<Task | undefined> {
-    throw new Error('Implementar con @ionic/storage-angular u otro proveedor');
+  getById(id: string): Observable<Task | undefined> {
+    return this.getAll().pipe(map((tasks) => tasks.find((t) => t.id === id)));
   }
 
-  upsert(): Observable<void> {
-    throw new Error('Implementar con @ionic/storage-angular u otro proveedor');
+  upsert(task: Task): Observable<void> {
+    return from(this.ensureReady()).pipe(
+      switchMap(() => from(this.storage.get(STORAGE_KEYS.tasks))),
+      map((rows) => (Array.isArray(rows) ? [...(rows as Task[])] : [])),
+      switchMap((tasks) => {
+        const i = tasks.findIndex((t) => t.id === task.id);
+        if (i >= 0) {
+          tasks[i] = task;
+        } else {
+          tasks.push(task);
+        }
+        return from(this.storage.set(STORAGE_KEYS.tasks, tasks));
+      }),
+    );
   }
 
-  remove(): Observable<void> {
-    throw new Error('Implementar con @ionic/storage-angular u otro proveedor');
+  remove(id: string): Observable<void> {
+    return from(this.ensureReady()).pipe(
+      switchMap(() => from(this.storage.get(STORAGE_KEYS.tasks))),
+      map((rows) => (Array.isArray(rows) ? (rows as Task[]) : [])),
+      switchMap((tasks) =>
+        from(this.storage.set(STORAGE_KEYS.tasks, tasks.filter((t) => t.id !== id))),
+      ),
+    );
   }
 }

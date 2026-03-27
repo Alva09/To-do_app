@@ -1,280 +1,254 @@
 # Prueba To‑Do — Ionic, Angular y Cordova
 
-Aplicación híbrida To‑Do con Ionic y Angular. Este documento detalla la instalación de dependencias, la vinculación con Ionic y la configuración de Cordova (Android / iOS), incluida la compatibilidad con Firebase.
+Aplicación híbrida **To‑Do** con **Ionic 8**, **Angular 21**, **Apache Cordova**, almacenamiento local (**Ionic Storage**), **AngularFire** (Remote Config) y arquitectura orientada a **Clean Architecture** (core, servicios, features, shared).
+
+---
+
+## Contenido
+
+1. [Requisitos previos](#requisitos-previos)  
+2. [Paso a paso: clonar y ejecutar](#paso-a-paso-clonar-y-ejecutar)  
+3. [Configuración de Firebase y Remote Config](#configuración-de-firebase-y-remote-config)  
+4. [Build para Cordova](#build-para-cordova)  
+5. [Integración Cordova, plataformas y plugins](#integración-cordova-plataformas-y-plugins)  
+6. [Firebase nativo (Cordova) vs Web SDK](#firebase-nativo-cordova-vs-web-sdk)  
+7. [Archivos de configuración relevantes](#archivos-de-configuración-relevantes)  
+8. [Decisiones técnicas](#decisiones-técnicas)  
+9. [Desafíos y limitaciones conocidas](#desafíos-y-limitaciones-conocidas)  
+10. [Resolución de problemas](#resolución-de-problemas)  
+
+---
 
 ## Requisitos previos
 
-- **Node.js** (LTS recomendado, por ejemplo 20.x o 22.x) y **npm**.
-- **Ionic CLI**: se instala como dependencia de desarrollo del proyecto (`@ionic/cli`) o globalmente si lo prefieres (`npm install -g @ionic/cli`).
-- **Android**
-  - [Android Studio](https://developer.android.com/studio) con Android SDK.
-  - Variable de entorno **`JAVA_HOME`** apuntando al JDK que usa Android Studio.
-  - Licencias del SDK aceptadas (desde Android Studio o `sdkmanager --licenses`).
-- **iOS** (solo en **macOS**)
-  - **Xcode completo** desde la App Store (no basta solo con «Command Line Tools» para `cordova platform add ios`).
-  - Tras instalar Xcode, el directorio activo de desarrollo debe ser **`Xcode.app`** (ver sección de errores de `xcode-select` más abajo).
-  - **CocoaPods** (`brew install cocoapods` o `gem install cocoapods`).
-
-> **Nota:** El repositorio incluye `src/app/` y la configuración Cordova en la raíz (`config.xml`, `ionic.config.json`, `package.json`). Para ejecutar `ng serve`, `ng build` o `ionic build` necesitas un proyecto **Angular + Ionic completo** (`angular.json`, dependencias `@angular/*`, `@ionic/angular`, etc.). Si aún no existen, genera una app Ionic en blanco y fusiona este `src/app` o completa el scaffold en esta carpeta.
+| Entorno | Detalle |
+|--------|---------|
+| **Node.js** | **LTS 20.x o 22.x** recomendado. Versiones non‑LTS (p. ej. 25) pueden mostrar advertencias con Angular. |
+| **npm** | Incluido con Node. Este repo usa **`.npmrc`** con `legacy-peer-deps=true` por compatibilidad **Angular 21 + AngularFire 20**. |
+| **Android** (opcional) | [Android Studio](https://developer.android.com/studio), `JAVA_HOME`, licencias SDK. |
+| **iOS** (solo macOS) | **Xcode** completo (App Store), `xcode-select` apuntando a `Xcode.app`, **CocoaPods** ≥ 1.12. |
 
 ---
 
-## 1. Instalar dependencias del proyecto
+## Paso a paso: clonar y ejecutar
 
-En la raíz del repositorio:
+Sigue este orden la primera vez (y cada vez que clones en una máquina nueva).
+
+### 1. Clonar el repositorio
 
 ```bash
-cd /ruta/a/Prueba_tec
+git clone <URL_DEL_REPO>
+cd Prueba_tec
+```
+
+(ajusta el nombre de la carpeta si tu remoto usa otro path).
+
+### 2. Instalar dependencias
+
+```bash
 npm install
 ```
 
-Esto instala, entre otras cosas:
+No hace falta pasar `--legacy-peer-deps` manualmente si existe **`.npmrc`** en la raíz (ya está versionado).
 
-| Paquete            | Rol                                      |
-|-------------------|-------------------------------------------|
-| `@ionic/cli`      | Comandos `ionic` (build, cordova, etc.)  |
-| `cordova`         | Núcleo de Apache Cordova                 |
-| `cordova-android` | Plataforma Android (gestión de versiones)|
-| `cordova-ios`     | Plataforma iOS                           |
+### 3. Configurar Firebase para la app web
 
-Los scripts útiles definidos en `package.json` son:
+Edita **`src/environments/environment.ts`** y completa el objeto **`firebase`** con los datos de tu proyecto en [Firebase Console](https://console.firebase.google.com/) → configuración del proyecto → tu app Web.
 
-| Script                    | Descripción                          |
-|---------------------------|--------------------------------------|
-| `npm run build`           | `ng build` (requiere proyecto Angular)|
-| `npm run ionic:build`     | Igual que `ng build`                 |
-| `npm run ionic:serve`     | `ng serve`                           |
-| `npm run cordova:prepare` | `ionic cordova prepare`              |
-| `npm run cordova:run:android` | `ionic cordova run android`    |
-| `npm run cordova:run:ios`     | `ionic cordova run ios`        |
-| `npm run cordova:build:android` | `ionic cordova build android --release` |
-| `npm run cordova:build:ios`     | `ionic cordova build ios`           |
+Sin valores válidos, **`initializeApp`** fallará al arrancar porque **`app.config.ts`** registra **`provideFirebaseAndRemoteConfig()`**.
 
-También puedes usar `npx` para no depender de PATH global:
+### 4. Remote Config (feature flags)
+
+1. En Firebase Console → **Remote Config**, crea el parámetro definido en **`src/app/core/config/remote-config-keys.ts`** (p. ej. `feature_show_delete_all_tasks`).  
+2. Los valores por defecto en cliente están en **`REMOTE_CONFIG_DEFAULTS`** hasta que se complete `fetchAndActivate`.
+
+### 5. Ejecutar en desarrollo (navegador)
 
 ```bash
-npx ionic --version
-npx cordova --version
+npm start
+# equivalente a:
+npx ng serve
 ```
 
----
+Abre la URL que indique la CLI (suele ser `http://localhost:4200/`). La app redirige a **`/tasks`**.
 
-## 2. Vincular el proyecto con Ionic (opcional)
+### 6. Compilar el frontend (salida para Cordova)
 
-### Desarrollo local únicamente
+```bash
+npx ng build
+# o desarrollo con sourcemaps:
+npx ng build --configuration development
+```
 
-Con **`ionic.config.json`** y **`config.xml`** en la raíz, suele bastar para trabajar con Cordova en tu máquina **sin** conectar el repo a Ionic Appflow.
+La salida va a **`www/`** (ver `angular.json`). Esa carpeta está en **`.gitignore`**; se regenera con cada build.
 
-### Ionic Appflow / panel de Ionic
-
-Si quieres enlazar la app a tu cuenta y al dashboard de Ionic:
+### 7. (Opcional) Vincular con Ionic Appflow
 
 ```bash
 npx ionic login
 npx ionic link
 ```
 
-`ionic link` asocia el proyecto a una aplicación en el panel y puede actualizar `ionic.config.json` con identificadores de la app.
+No es obligatorio para desarrollo local.
 
 ---
 
-## 3. Habilitar o refrescar la integración Cordova
+## Configuración de Firebase y Remote Config
 
-Si instalas el proyecto desde cero o clonas sin carpeta `platforms/`, confirma que la integración Cordova esté alineada con la CLI:
+| Archivo | Propósito |
+|---------|-----------|
+| `src/environments/environment.ts` | Credenciales **`firebase`** y flag **`production`** (afecta intervalo de fetch en Remote Config). |
+| `src/app/providers/firebase.providers.ts` | `provideFirebaseApp`, `provideRemoteConfig`, **`defaultConfig`** derivado de las constantes de Remote Config. |
+| `src/app/core/config/remote-config-keys.ts` | Nombres de parámetros y valores por defecto locales. |
+| `src/app/services/remote-config/app-remote-config.service.ts` | Emisión inicial + `fetchAndActivate`; observable **`showDeleteAllTasks$`**, etc. |
+
+---
+
+## Build para Cordova
+
+1. Generar **`www/`**: `npx ng build` (o `npm run build`).  
+2. Preparar / ejecutar con Ionic + Cordova, por ejemplo:
+
+```bash
+npx ionic cordova prepare android
+npx ionic cordova run android
+```
+
+En iOS, tras añadir la plataforma y resolver Pods, abre el **`.xcworkspace`** en Xcode si hace falta.
+
+---
+
+## Integración Cordova, plataformas y plugins
 
 ```bash
 npx ionic integrations enable cordova --add
-```
-
-Si ya existe `config.xml` (como en este repo), el comando principalmente **sincroniza** la integración. Si la CLI regenera algo, revisa que el **widget id**, el **nombre** y las **preferencias** de `config.xml` sigan siendo las que necesitas.
-
----
-
-## 4. Añadir plataformas Android e iOS
-
-Desde la raíz del proyecto, con dependencias ya instaladas:
-
-```bash
 npx ionic cordova platform add android
 npx ionic cordova platform add ios
-```
-
-Comprobar qué plataformas están instaladas:
-
-```bash
 npx cordova platform ls
 ```
 
-### Ejecutar en dispositivo o emulador
+Scripts útiles en **`package.json`**:
 
-Con el **build web** ya generado en `www/` (tras `ionic build` o el flujo de build de tu app Angular):
-
-```bash
-npx ionic cordova run android
-npx ionic cordova run ios
-```
-
-En iOS, la primera vez suele imponerse abrir el workspace en Xcode o resolver pods según los plugins instalados.
-
----
-
-## 5. Firebase y Cordova (compatibilidad)
-
-### Buenas prácticas
-
-- **No mezcles** varios plugins Firebase antiguos o duplicados (por ejemplo `cordova-plugin-firebase` obsoleto junto a otros). Eso suele provocar conflictos en **Gradle** o dependencias nativas repetidas.
-- En **`config.xml`** este proyecto ya incluye preferencias orientadas a **AndroidX** y **Kotlin**, alineadas con plugins Firebase actuales en Cordova.
-
-### Plugin recomendado para servicios nativos Firebase
-
-Para **Analytics**, **FCM**, **Remote Config** nativos, etc., una opción mantenida es:
-
-```bash
-npx ionic cordova plugin add cordova-plugin-firebasex
-```
-
-Después debes:
-
-1. Añadir **`google-services.json`** (Firebase Console → tu app Android) en la ubicación que indique la documentación del plugin (suele ser la raíz del proyecto Cordova / rutas que el plugin copia al proyecto nativo).
-2. Añadir **`GoogleService-Info.plist`** para iOS y configurar el proyecto según la [documentación oficial del plugin](https://github.com/dpa99c/cordova-plugin-firebasex).
-3. Seguir las notas del plugin sobre **Pods** en iOS y versiones de **Google Services** en Android si el build falla.
-
-### Solo Firebase en el WebView (`@angular/fire`)
-
-Si tu uso de Firebase es **solo vía JavaScript** dentro del WebView (sin APIs nativas extra), a veces **no** necesitas plugin Cordova; en ese caso evita instalar **dos** integraciones distintas para el mismo producto. Configura dominios autorizados y reglas según la documentación web de Firebase.
+| Script | Descripción |
+|--------|-------------|
+| `npm start` | `ng serve` |
+| `npm run build` | `ng build` |
+| `npm run cordova:prepare` | `ionic cordova prepare` |
+| `npm run cordova:run:android` / `cordova:run:ios` | Ejecutar en dispositivo/emulador |
+| `npm run cordova:build:android` / `cordova:build:ios` | Builds de release |
 
 ---
 
-## 6. Archivos de configuración relevantes
+## Firebase nativo (Cordova) vs Web SDK
 
-| Archivo              | Descripción                                                |
-|---------------------|-------------------------------------------------------------|
-| `config.xml`        | Id de la app, nombre, preferencias Cordovar por plataforma |
-| `ionic.config.json` | Nombre del proyecto, tipo `angular`, integración `cordova` |
-| `package.json`      | Scripts y versiones de `cordova-ios` / `cordova-android`   |
-| `www/`              | Salida del build web que empaqueta Cordova (`index.html`…) |
-
-El **id** de aplicación en `config.xml` (`widget id`, p. ej. `com.pruebatec.todo`) debe coincidir con lo que uses en tiendas y en Firebase al registrar las apps nativas.
+- **AngularFire + SDK JS** en el WebView cubre **Remote Config** (y futuro Firestore en JS) sin depender del bridge nativo.  
+- **`cordova-plugin-firebasex`** aporta capacidades **nativas** (FCM, etc.). Evita duplicar la misma función con dos plugins distintos.  
+- Añade **`google-services.json`** / **`GoogleService-Info.plist`** según la guía del plugin si compilás nativo con Firebasex.
 
 ---
 
-## 7. Resolución de problemas breve
+## Archivos de configuración relevantes
 
-- **`npx` no encontrado:** instala Node.js LTS y reinicia la terminal; comprueba `node -v` y `npm -v`.
-- **Android: fallo de licencias o SDK:** abre Android Studio, instala el SDK pedido y acepta licencias.
-- **Build sin carpeta Angular completa:** completa el proyecto con `ionic start` (plantilla blank + Angular) o añade `angular.json` y dependencias antes de `ng build` / `ionic build`.
+| Archivo | Descripción |
+|---------|-------------|
+| `angular.json` | Build Angular → **`www/`**, configs `development` / `production`. |
+| `tsconfig.json`, `tsconfig.app.json` | TypeScript del proyecto. |
+| `src/main.ts` | `bootstrapApplication(AppComponent, appConfig)`. |
+| `src/app/app.config.ts` | Providers: Ionic, Router, Firebase, Storage, repositorios. |
+| `src/app/app.routes.ts` | Rutas con **carga diferida** por feature. |
+| `config.xml` | Id de app Cordova, nombre, **iOS deployment-target** (≥ 15 para Firebase reciente), recursos. |
+| `ionic.config.json` | Tipo `angular`, integración `cordova`, id Appflow si aplica. |
+| `.npmrc` | `legacy-peer-deps=true`. |
 
-### iOS: «xcodebuild requires Xcode, but active developer directory … CommandLineTools»
+El **widget id** de `config.xml` debe ser coherente con el registro en tiendas y con apps **Android/iOS** en Firebase si usás SDK nativo.
 
-Al ejecutar `npx ionic cordova platform add ios` puede aparecer:
+---
 
-`xcode-select: error: tool 'xcodebuild' requires Xcode, but active developer directory '/Library/Developer/CommandLineTools' is a command line tools instance`
+## Decisiones técnicas
 
-Significa que macOS está usando solo las **herramientas de línea de comandos**, no el **Xcode de aplicación**. Cordova y CocoaPods necesitan el SDK de iOS que viene dentro de `Xcode.app`.
+1. **Clean Architecture ligera**  
+   - **Core**: modelos (`Task`, `Category`) y puertos abstractos (`TaskRepository`, `CategoryRepository`).  
+   - **Services**: implementaciones concretas (Ionic Storage, stubs Firebase).  
+   - **Composición** en `providers/`: `provideLocalTaskAndCategoryRepositories()` vs `provideFirebaseTaskAndCategoryRepositories()` para invertir dependencias (SOLID / DIP).
 
-**Pasos:**
+2. **Standalone components + rutas lazy**  
+   - Sin NgModules de feature: `loadChildren` importa `TASKS_ROUTES` / `CATEGORIES_ROUTES` y genera **chunks** separados.
 
-1. Instala **Xcode** desde la App Store y ábrelo al menos una vez (acepta licencia y deja que terminen componentes opcionales si te lo pide).
-2. Apunta `xcode-select` al Xcode correcto (ruta típica):
+3. **Persistencia local con `@ionic/storage-angular`**  
+   - Claves versionadas en `storage-keys.ts` para poder migrar esquemas.
 
-   ```bash
-   sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-   ```
+4. **Remote Config con AngularFire**  
+   - Defaults en cliente + `fetchAndActivate`; feature flag para UI sensible (p. ej. «Eliminar todas las tareas»).  
+   - **AngularFire 20** con **Angular 21** vía **`legacy-peer-deps`** hasta alineación oficial de peers.
 
-   Si Xcode está en otra ruta (p. ej. varias versiones), elige la carpeta `…/Xcode.app/Contents/Developer` que quieras usar.
+5. **Lista de tareas a escala**  
+   - **`ChangeDetectionStrategy.OnPush`** + `markForCheck` tras datos async.  
+   - **TrackBy** explícito en `@for` y `*cdkVirtualFor`.  
+   - **Angular CDK Virtual Scroll** si el filtro activo supera **100** ítems; lista filtrada precomputada para no ejecutar pipes pesados en cada fila virtual.  
+   - **`itemSize` fijo** (~88px): asunción de filas de altura uniforme.
 
-3. Comprueba:
+6. **Salida de build en `www/`**  
+   - Alineado con **Cordova** / flujo típico Ionic.
 
-   ```bash
-   xcode-select -p
-   # Debe mostrar: /Applications/Xcode.app/Contents/Developer
-   xcodebuild -version
-   ```
+7. **`.gitignore` de `www/`**  
+   - El artefacto de build no se versiona; cada entorno genera `www/` con `ng build`.
 
-4. Licencia (si Xcode lo pide):
+---
 
-   ```bash
-   sudo xcodebuild -license accept
-   ```
+## Desafíos y limitaciones conocidas
 
-5. Vuelve a preparar la plataforma (por si `platforms/ios` quedó incompleto):
+- **Peers Angular / AngularFire:** requiere `.npmrc` o flags manuales; conviene revisar cuando salga AngularFire con soporte peer explícito para tu versión de Angular.  
+- **Cordova + iOS:** CocoaPods, **deployment target** (Firebase 12.x → iOS ≥ 15) y **`xcode-select` apuntando a Xcode.app** suelen ser la fuente de errores en equipos nuevos.  
+- **Remote Config:** primer valor útil = defaults + caché; la red puede fallar; el servicio contempla fallback.  
+- **Virtual scroll CDK:** alturas de ítem muy variables o contenido dinámico alto pueden necesitar ajuste de **`itemSize`** u otra estrategia (paginación).  
+- **Firebase en WebView vs nativo:** definir qué API usás para cada capability evita configuraciones contradictorias.  
+- **Tareas en volumen extremo:** el repositorio local carga todo en memoria; para miles de registros habría que valorar paginación en Storage o pasar a backend/Firestore con consultas paged.
 
-   ```bash
-   cd /ruta/a/Prueba_tec
-   npx cordova platform remove ios
-   npx ionic cordova platform add ios
-   ```
+---
 
-### iOS: «CocoaPods was not found» al añadir la plataforma
+## Resolución de problemas
 
-Al ejecutar `npx ionic cordova platform add ios`, Cordova instala plugins que dependen de **CocoaPods** (`pod`). Si no está instalado, verás un error similar a:
+### General
 
-`CocoaPods was not found. Please install version 1.8.0 or greater`
+- **`npx` / Node:** instalá Node LTS y verificá `node -v`, `npm -v`.  
+- **Android:** licencias y SDK desde Android Studio.
 
-**Solución (elige una):**
+### iOS: `xcodebuild` requiere Xcode (no solo Command Line Tools)
 
-1. **Homebrew** (recomendado en macOS reciente / Apple Silicon):
-
-   ```bash
-   brew install cocoapods
-   pod --version
-   ```
-
-   Debe mostrar una versión ≥ 1.8.0.
-
-2. **RubyGems** (si no usas Homebrew):
-
-   ```bash
-   sudo gem install cocoapods
-   pod --version
-   ```
-
-   En macOS con Ruby del sistema muy antiguo, a veces conviene usar **rbenv** / **asdf** con un Ruby reciente y luego `gem install cocoapods` sin `sudo`.
-
-Después **cierra y abre la terminal** (o ejecuta `hash -r`) y vuelve a añadir iOS:
+Apuntá el developer directory a Xcode:
 
 ```bash
-cd /ruta/a/Prueba_tec
-npx ionic cordova platform add ios
+sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+xcode-select -p
+xcodebuild -version
 ```
 
-Si la carpeta `platforms/ios` quedó a medias por el fallo anterior:
+Luego regenerá la plataforma si hace falta:
 
 ```bash
 npx cordova platform remove ios
 npx ionic cordova platform add ios
 ```
 
-**Más adelante**, si el build falla por dependencias nativas: desde `platforms/ios` suele ayudar `pod install` o abrir el `.xcworkspace` en Xcode y dejar que resuelva pods; sigue el mensaje concreto de error.
+### iOS: CocoaPods no encontrado
 
-### iOS: «FirebaseCore … required a higher minimum deployment target» al instalar `cordova-plugin-firebasex`
+```bash
+brew install cocoapods
+pod --version
+```
 
-CocoaPods encuentra el pod `FirebaseCore` (p. ej. 12.9.0), pero el **iOS Deployment Target** del proyecto Cordova es demasiado bajo. Los pods de Firebase 12.x declaran **`ios` ≥ 15.0** en su podspec; si el proyecto sigue en 11.x o 13.x, la resolución falla con un mensaje como:
+### iOS: FirebaseCore y «higher minimum deployment target»
 
-`Specs satisfying the FirebaseCore (= …) dependency were found, but they required a higher minimum deployment target.`
-
-**En este repositorio**, en `config.xml` dentro de `<platform name="ios">` está definido:
+En **`config.xml`** (plataforma `ios`) debe existir algo como:
 
 ```xml
 <preference name="deployment-target" value="15.0" />
 ```
 
-Si cambiaste el archivo o el fallo ocurrió **antes** de añadir esa preferencia, haz una pasada limpia:
-
-```bash
-cd /ruta/a/Prueba_tec
-npx cordova plugin remove cordova-plugin-firebasex 2>/dev/null || true
-npx cordova platform remove ios
-npx ionic cordova platform add ios
-npx ionic cordova plugin add cordova-plugin-firebasex
-```
-
-Si en el futuro un pod de Firebase exigiera **iOS 16+**, sube el valor a `16.0` en esa misma preferencia y vuelve a preparar la plataforma.
-
-Comprueba también que CocoaPods sea reciente (`pod --version`; el podspec de FirebaseCore pide `cocoapods_version` ≥ 1.12.0).
+Si falló la instalación del plugin, limpiá plataforma/plugin y volvé a añadir (ver versiones anteriores del README o la documentación del plugin).
 
 ---
 
 ## Licencia y autor
 
-Ajusta autor y licencia según tu organización.
+Autor: Daniel Enrique Alvarado Fuentes

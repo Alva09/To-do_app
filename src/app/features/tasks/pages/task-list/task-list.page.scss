@@ -1,0 +1,14 @@
+.composer {
+  margin-top: 0.75rem;
+}
+
+.done {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+/* Altura explícita requerida por CDK Virtual Scroll dentro de ion-content */
+.task-viewport {
+  width: 100%;
+  height: min(65vh, calc(100dvh - 220px));
+}

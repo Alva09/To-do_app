@@ -3,12 +3,23 @@ import { CategoryRepository } from '../core/interfaces/category.repository';
 import { TaskRepository } from '../core/interfaces/task.repository';
 import { FirebaseCategoryRepository } from '../services/firebase/firebase-category.repository';
 import { FirebaseTaskRepository } from '../services/firebase/firebase-task.repository';
+import { LocalCategoryRepository } from '../services/storage/local-category.repository';
+import { LocalTaskRepository } from '../services/storage/local-task.repository';
 
 /**
- * Composición raíz (DIP): las features inyectan puertos abstractos;
- * aquí eliges Firebase, local, o un decorador cache/offline-first.
+ * Persistencia local (Ionic Storage). Requiere `provideIonicAppStorage()` en la misma lista de `providers`.
  */
-export function provideTaskAndCategoryRepositories(): EnvironmentProviders {
+export function provideLocalTaskAndCategoryRepositories(): EnvironmentProviders {
+  return makeEnvironmentProviders([
+    { provide: TaskRepository, useClass: LocalTaskRepository },
+    { provide: CategoryRepository, useClass: LocalCategoryRepository },
+  ]);
+}
+
+/**
+ * Firebase (stubs hasta implementar). No requiere Ionic Storage.
+ */
+export function provideFirebaseTaskAndCategoryRepositories(): EnvironmentProviders {
   return makeEnvironmentProviders([
     { provide: TaskRepository, useClass: FirebaseTaskRepository },
     { provide: CategoryRepository, useClass: FirebaseCategoryRepository },

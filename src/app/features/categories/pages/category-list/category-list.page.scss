@@ -1,0 +1,14 @@
+.swatch {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  margin-right: 0.5rem;
+  vertical-align: middle;
+  border: 1px solid var(--ion-color-medium, #999);
+}
+
+.fab-plus {
+  font-size: 1.75rem;
+  line-height: 1;
+}

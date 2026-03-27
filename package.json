@@ -15,7 +15,25 @@
     "cordova:build:android": "ionic cordova build android --release",
     "cordova:build:ios": "ionic cordova build ios"
   },
+  "dependencies": {
+    "@angular/cdk": "^21.2.4",
+    "@angular/common": "^21.2.6",
+    "@angular/compiler": "^21.2.6",
+    "@angular/core": "^21.2.6",
+    "@angular/fire": "^20.0.1",
+    "@angular/forms": "^21.2.6",
+    "@angular/platform-browser": "^21.2.6",
+    "@angular/router": "^21.2.6",
+    "@ionic/angular": "^8.8.2",
+    "@ionic/storage": "^4.0.0",
+    "@ionic/storage-angular": "^4.0.0",
+    "firebase": "^11.10.0",
+    "rxjs": "^7.8.2"
+  },
   "devDependencies": {
+    "@angular/build": "^21.2.4",
+    "@angular/cli": "^21.2.4",
+    "@angular/compiler-cli": "^21.2.6",
     "@ionic/cli": "^7.2.1",
     "cordova": "^12.0.0",
     "cordova-android": "^13.0.0",
@@ -25,7 +43,9 @@
     "cordova-plugin-ionic-keyboard": "^2.0.5",
     "cordova-plugin-ionic-webview": "^5.0.0",
     "cordova-plugin-splashscreen": "5.0.2",
-    "cordova-plugin-statusbar": "^2.4.2"
+    "cordova-plugin-statusbar": "^2.4.2",
+    "typescript": "~5.9.0",
+    "zone.js": "~0.15.0"
   },
   "cordova": {
     "platforms": [

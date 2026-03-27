@@ -1,8 +1,7 @@
-# Cordova / Ionic
+# Cordova / Ionic (salida de `ng build` / `ionic build`)
 platforms/
 plugins/
-www/*
-!www/index.html
+www/
 
 # Node
 node_modules/
