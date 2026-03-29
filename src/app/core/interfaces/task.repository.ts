@@ -7,4 +7,6 @@ export abstract class TaskRepository {
   abstract getById(id: string): Observable<Task | undefined>;
   abstract upsert(task: Task): Observable<void>;
   abstract remove(id: string): Observable<void>;
+  /** Borra todas las tareas en una sola escritura (evita condiciones de carrera). */
+  abstract clearAll(): Observable<void>;
 }

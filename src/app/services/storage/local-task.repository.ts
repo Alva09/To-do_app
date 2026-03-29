@@ -56,4 +56,10 @@ export class LocalTaskRepository extends TaskRepository {
       ),
     );
   }
+
+  clearAll(): Observable<void> {
+    return from(this.ensureReady()).pipe(
+      switchMap(() => from(this.storage.set(STORAGE_KEYS.tasks, []))),
+    );
+  }
 }

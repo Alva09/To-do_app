@@ -32,8 +32,6 @@ import {
   MenuController,
   ViewWillEnter,
 } from '@ionic/angular/standalone';
-import { forkJoin, of } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
 import { CategoryRepository } from '../../../../core/interfaces/category.repository';
 import type { Category } from '../../../../core/models/category.model';
 import { TaskRepository } from '../../../../core/interfaces/task.repository';
@@ -257,17 +255,7 @@ export class TaskListPage implements ViewWillEnter {
   }
 
   private deleteAllTasks(): void {
-    this.taskRepo
-      .getAll()
-      .pipe(
-        switchMap((tasks) => {
-          if (!tasks.length) {
-            return of(undefined);
-          }
-          return forkJoin(tasks.map((t) => this.taskRepo.remove(t.id)));
-        }),
-      )
-      .subscribe(() => this.reload());
+    this.taskRepo.clearAll().subscribe(() => this.reload());
   }
 
   private recomputeFiltered(): void {
