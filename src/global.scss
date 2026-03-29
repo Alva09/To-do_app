@@ -89,12 +89,6 @@ ion-alert.app-alert-rounded .alert-button:last-child {
   margin-bottom: 0;
 }
 
-/**
- * Modal categoría: ancho/alto máximo aquí. Evitar --height: auto en el host (campos invisibles)
- * y evitar min-height grande en ::part(content) (hueco vertical vacío).
- *
- * Ajustá --max-height o el max-height de ::part(content) si querés más/menos alto.
- */
 ion-modal.app-category-form-modal {
   --width: min(92vw, 400px);
   --max-width: 400px;

@@ -3,7 +3,7 @@
   "parameters": {
     "feature_show_delete_all_tasks": {
       "defaultValue": {
-        "value": "false"
+        "value": "true"
       },
       "description": "Si es true, muestra el botón «Eliminar todas las tareas» en la barra de tareas (Remote Config / feature flag)."
     }

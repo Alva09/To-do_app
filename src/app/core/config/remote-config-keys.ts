@@ -12,5 +12,5 @@ export const REMOTE_CONFIG_DEFAULTS: Record<
   (typeof REMOTE_CONFIG_KEYS)[keyof typeof REMOTE_CONFIG_KEYS],
   boolean
 > = {
-  [REMOTE_CONFIG_KEYS.showDeleteAllTasks]: false,
+  [REMOTE_CONFIG_KEYS.showDeleteAllTasks]: true,
 };
