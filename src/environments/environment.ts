@@ -1,15 +1,12 @@
-/**
- * Sustituye por la configuración de tu proyecto en Firebase Console
- * (Project settings → Your apps → Web app).
- */
 export const environment = {
   production: false,
   firebase: {
-    apiKey: 'REPLACE_ME',
-    authDomain: 'REPLACE_ME.firebaseapp.com',
-    projectId: 'REPLACE_ME',
-    storageBucket: 'REPLACE_ME.appspot.com',
-    messagingSenderId: 'REPLACE_ME',
-    appId: 'REPLACE_ME',
+    apiKey: "AIzaSyDoY2moB7saOlI1ZEoNr22S8K_YnrWuYmg",
+    authDomain: "todoapp-48a45.firebaseapp.com",
+    projectId: "todoapp-48a45",
+    storageBucket: "todoapp-48a45.firebasestorage.app",
+    messagingSenderId: "138064480905",
+    appId: "1:138064480905:web:c04442236b6d2620ac1458",
+    measurementId: "G-6CLHWG83YF"
   },
 };

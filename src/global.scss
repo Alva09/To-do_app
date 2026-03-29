@@ -1,3 +1,5 @@
+@use "./theme/variables.scss";
+
 @import "@ionic/angular/css/core.css";
 @import "@ionic/angular/css/normalize.css";
 @import "@ionic/angular/css/structure.css";
@@ -8,3 +10,100 @@
 @import "@ionic/angular/css/text-alignment.css";
 @import "@ionic/angular/css/text-transformation.css";
 @import "@ionic/angular/css/flex-utils.css";
+
+html {
+  font-family: var(--ion-font-family);
+}
+
+body {
+  background: var(--app-page-bg);
+}
+
+ion-app {
+  background: var(--app-page-bg);
+}
+
+ion-content {
+  --background: var(--app-page-bg);
+  --padding-start: var(--ion-padding);
+  --padding-end: var(--ion-padding);
+  --padding-top: var(--ion-padding);
+  --padding-bottom: var(--ion-padding);
+}
+
+ion-toolbar {
+  --border-width: 0 0 1px 0;
+  --border-color: rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+}
+
+ion-card {
+  --background: var(--app-card-bg);
+  margin: 0;
+  border-radius: var(--app-radius-card);
+  box-shadow: var(--app-card-shadow);
+}
+
+ion-button[fill="clear"][color="danger"] {
+  --color: var(--app-danger-text);
+  opacity: 0.9;
+}
+
+ion-button[fill="clear"][color="danger"]:hover {
+  --background: var(--app-danger-soft);
+}
+
+ion-checkbox {
+  --size: 22px;
+  --checkbox-background-checked: var(--ion-color-success);
+  --border-color-checked: var(--ion-color-success);
+}
+
+ion-segment {
+  --background: #ffffff;
+  border-radius: 12px;
+  padding: 4px;
+  box-shadow: var(--app-card-shadow);
+}
+
+ion-segment-button {
+  --indicator-color: var(--ion-color-primary);
+  --color: var(--app-text-muted);
+  --color-checked: var(--ion-color-primary);
+  font-weight: 600;
+  min-height: 40px;
+}
+
+/** Modales / alertas con esquinas redondeadas (no cuadradas) */
+ion-alert.app-alert-rounded {
+  --border-radius: 22px;
+  --max-width: min(92vw, 400px);
+}
+
+ion-alert.app-alert-rounded .alert-button {
+  border-radius: 12px;
+  margin-bottom: 4px;
+}
+
+ion-alert.app-alert-rounded .alert-button:last-child {
+  margin-bottom: 0;
+}
+
+/**
+ * Modal categoría: ancho/alto máximo aquí. Evitar --height: auto en el host (campos invisibles)
+ * y evitar min-height grande en ::part(content) (hueco vertical vacío).
+ *
+ * Ajustá --max-height o el max-height de ::part(content) si querés más/menos alto.
+ */
+ion-modal.app-category-form-modal {
+  --width: min(92vw, 400px);
+  --max-width: 400px;
+  --max-height: min(85vh, 480px);
+  --border-radius: 22px;
+  --box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18);
+}
+
+ion-modal.app-category-form-modal::part(content) {
+  border-radius: 22px;
+  max-height: min(85vh, 350px);
+}

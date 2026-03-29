@@ -11,22 +11,23 @@ import {
   IonBackButton,
   IonButton,
   IonButtons,
+  IonCard,
+  IonCardContent,
   IonContent,
   IonFab,
   IonFabButton,
   IonHeader,
-  IonItem,
-  IonItemOption,
-  IonItemOptions,
-  IonItemSliding,
-  IonLabel,
-  IonList,
+  IonIcon,
+  IonInput,
+  IonModal,
   IonTitle,
   IonToolbar,
 } from '@ionic/angular/standalone';
 import { CategoryRepository } from '../../../../core/interfaces/category.repository';
 import type { Category } from '../../../../core/models/category.model';
 import { TaskRepository } from '../../../../core/interfaces/task.repository';
+import { categoryListCardSurface } from '../../../../core/utils/category-appearance';
+import { parseColorInputToHex } from '../../../../core/utils/color-input';
 import { forkJoin } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 
@@ -45,19 +46,25 @@ import { switchMap } from 'rxjs/operators';
     IonButtons,
     IonBackButton,
     IonContent,
-    IonList,
-    IonItemSliding,
-    IonItem,
-    IonLabel,
-    IonItemOptions,
-    IonItemOption,
+    IonCard,
+    IonCardContent,
     IonButton,
     IonFab,
     IonFabButton,
+    IonIcon,
+    IonModal,
+    IonInput,
   ],
 })
 export class CategoryListPage implements OnInit {
   categories: Category[] = [];
+
+  categoryFormOpen = false;
+  categoryFormMode: 'create' | 'edit' = 'create';
+  categoryFormName = '';
+  /** Texto libre: #RRGGBB, #RGB o rgb(...). Vacío = color automático. */
+  categoryFormColorRaw = '';
+  private editingCategory: Category | null = null;
 
   constructor(
     private readonly categoryRepo: CategoryRepository,
@@ -81,86 +88,115 @@ export class CategoryListPage implements OnInit {
     });
   }
 
-  async openCreate(): Promise<void> {
+  categorySurface(category: Category): Record<string, string> {
+    return categoryListCardSurface(category);
+  }
+
+  /** Vista previa del color cuando el texto es válido. */
+  categoryFormColorPreview(): string | null {
+    const parsed = parseColorInputToHex(this.categoryFormColorRaw);
+    if (parsed === null || parsed === undefined) {
+      return null;
+    }
+    return parsed;
+  }
+
+  openCreate(): void {
+    this.categoryFormMode = 'create';
+    this.editingCategory = null;
+    this.categoryFormName = '';
+    this.categoryFormColorRaw = '';
+    this.categoryFormOpen = true;
+    this.cdr.markForCheck();
+  }
+
+  openEdit(category: Category): void {
+    this.categoryFormMode = 'edit';
+    this.editingCategory = category;
+    this.categoryFormName = category.name;
+    this.categoryFormColorRaw = category.color?.trim() ?? '';
+    this.categoryFormOpen = true;
+    this.cdr.markForCheck();
+  }
+
+  closeCategoryForm(): void {
+    this.categoryFormOpen = false;
+    this.cdr.markForCheck();
+  }
+
+  onCategoryFormDismiss(): void {
+    this.editingCategory = null;
+    this.categoryFormName = '';
+    this.categoryFormColorRaw = '';
+    this.cdr.markForCheck();
+  }
+
+  saveCategoryForm(): void {
+    const name = this.categoryFormName.trim();
+    if (!name) {
+      void this.showNameRequiredAlert();
+      return;
+    }
+
+    const parsed = parseColorInputToHex(this.categoryFormColorRaw);
+    if (parsed === undefined) {
+      void this.showInvalidColorAlert();
+      return;
+    }
+    const color = parsed === null ? undefined : parsed;
+
+    if (this.categoryFormMode === 'create') {
+      const cat: Category = {
+        id: crypto.randomUUID(),
+        name,
+        color,
+      };
+      this.categoryRepo.upsert(cat).subscribe(() => {
+        this.reload();
+        this.closeCategoryForm();
+      });
+      return;
+    }
+
+    if (this.editingCategory) {
+      const updated: Category = {
+        ...this.editingCategory,
+        name,
+        color,
+      };
+      this.categoryRepo.upsert(updated).subscribe(() => {
+        this.reload();
+        this.closeCategoryForm();
+      });
+    }
+  }
+
+  private async showNameRequiredAlert(): Promise<void> {
     const alert = await this.alertCtrl.create({
-      header: 'Nueva categoría',
-      inputs: [
-        { name: 'name', type: 'text', placeholder: 'Nombre' },
-        {
-          name: 'color',
-          type: 'text',
-          placeholder: 'Color (#RRGGBB opcional)',
-        },
-      ],
-      buttons: [
-        { text: 'Cancelar', role: 'cancel' },
-        {
-          text: 'Guardar',
-          handler: (data) => {
-            const name = (data?.name as string)?.trim();
-            if (!name) {
-              return false;
-            }
-            const color = (data?.color as string)?.trim() || undefined;
-            const cat: Category = {
-              id: crypto.randomUUID(),
-              name,
-              color,
-            };
-            this.categoryRepo.upsert(cat).subscribe(() => this.reload());
-            return true;
-          },
-        },
-      ],
+      cssClass: 'app-alert-rounded',
+      header: 'Nombre obligatorio',
+      message: 'Escribe un nombre para la categoría.',
+      buttons: [{ text: 'Entendido', role: 'cancel' }],
     });
     await alert.present();
   }
 
-  async openEdit(category: Category): Promise<void> {
+  private async showInvalidColorAlert(): Promise<void> {
     const alert = await this.alertCtrl.create({
-      header: 'Editar categoría',
-      inputs: [
-        {
-          name: 'name',
-          type: 'text',
-          placeholder: 'Nombre',
-          value: category.name,
-        },
-        {
-          name: 'color',
-          type: 'text',
-          placeholder: 'Color (#RRGGBB opcional)',
-          value: category.color ?? '',
-        },
-      ],
-      buttons: [
-        { text: 'Cancelar', role: 'cancel' },
-        {
-          text: 'Guardar',
-          handler: (data) => {
-            const name = (data?.name as string)?.trim();
-            if (!name) {
-              return false;
-            }
-            const color = (data?.color as string)?.trim() || undefined;
-            const updated: Category = {
-              ...category,
-              name,
-              color,
-            };
-            this.categoryRepo.upsert(updated).subscribe(() => this.reload());
-            return true;
-          },
-        },
-      ],
+      cssClass: 'app-alert-rounded',
+      header: 'Color HEX no válido',
+      message:
+        'El color debe ir en hexadecimal empezando con # (ej. #3880ff o #3af). Puedes dejar el campo vacío para color automático.',
+      buttons: [{ text: 'Entendido', role: 'cancel' }],
     });
     await alert.present();
   }
 
   async confirmDelete(category: Category): Promise<void> {
     const alert = await this.alertCtrl.create({
+      cssClass: 'app-alert-rounded',
       header: 'Eliminar categoría',
-      message: `¿Eliminar «${category.name}»? Las tareas asociadas quedarán sin categoría.`,
+      message: `¿Quieres eliminar «${category.name}»? Las tareas asociadas quedarán sin categoría.`,
       buttons: [
         { text: 'Cancelar', role: 'cancel' },
         {
