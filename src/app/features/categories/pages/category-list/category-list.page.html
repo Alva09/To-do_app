@@ -1,5 +1,5 @@
-<ion-header>
-  <ion-toolbar>
+<ion-header class="ion-no-border">
+  <ion-toolbar class="category-toolbar">
     <ion-buttons slot="start">
       <ion-back-button defaultHref="/tasks"></ion-back-button>
     </ion-buttons>
@@ -7,38 +7,125 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content>
-  <ion-list>
+<ion-content class="category-page">
+  <div class="category-shell">
     @for (c of categories; track trackByCategoryId($index, c)) {
-      <ion-item-sliding>
-        <ion-item>
-          <ion-label>
-            @if (c.color) {
-              <span class="swatch" [style.background]="c.color"></span>
-            }
-            <h2>{{ c.name }}</h2>
-            <p>ID: {{ c.id }}</p>
-          </ion-label>
-          <ion-button slot="end" fill="clear" (click)="openEdit(c)">
-            Editar
-          </ion-button>
-        </ion-item>
-        <ion-item-options side="end">
-          <ion-item-option color="danger" (click)="confirmDelete(c)">
-            Borrar
-          </ion-item-option>
-        </ion-item-options>
-      </ion-item-sliding>
+      <ion-card class="category-card" [ngStyle]="categorySurface(c)">
+        <ion-card-content>
+          <div class="category-card__row">
+            <div class="category-card__text">
+              <h2 class="category-card__title">{{ c.name }}</h2>
+            </div>
+            <div class="category-card__actions">
+              <ion-button
+                fill="solid"
+                class="category-card__btn category-card__btn--edit"
+                aria-label="Editar categoría"
+                (click)="openEdit(c)"
+              >
+                Editar
+              </ion-button>
+              <ion-button
+                fill="solid"
+                color="danger"
+                class="category-card__btn"
+                aria-label="Eliminar categoría"
+                (click)="confirmDelete(c)"
+              >
+                <ion-icon slot="start" name="trash-outline" aria-hidden="true"></ion-icon>
+                Eliminar
+              </ion-button>
+            </div>
+          </div>
+        </ion-card-content>
+      </ion-card>
     } @empty {
-      <ion-item>
-        <ion-label>No hay categorías. Añade una con +.</ion-label>
-      </ion-item>
+      <ion-card class="category-empty">
+        <ion-card-content>
+          <p class="category-empty__text">
+            Aún no tienes categorías. Toca el botón + para agregar la primera.
+          </p>
+        </ion-card-content>
+      </ion-card>
     }
-  </ion-list>
+  </div>
 
   <ion-fab slot="fixed" vertical="bottom" horizontal="end">
-    <ion-fab-button (click)="openCreate()">
+    <ion-fab-button aria-label="Agregar categoría" (click)="openCreate()">
       <span class="fab-plus" aria-hidden="true">+</span>
     </ion-fab-button>
   </ion-fab>
 </ion-content>
+
+<ion-modal
+  [isOpen]="categoryFormOpen"
+  cssClass="app-category-form-modal"
+  (didDismiss)="onCategoryFormDismiss()"
+>
+  <ng-template>
+    <ion-header class="ion-no-border">
+      <ion-toolbar>
+        <ion-title>
+          {{ categoryFormMode === 'create' ? 'Nueva categoría' : 'Editar categoría' }}
+        </ion-title>
+        <ion-buttons slot="end">
+          <ion-button fill="clear" (click)="closeCategoryForm()">Cancelar</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="category-form-modal__body" [fullscreen]="false" [scrollY]="true">
+      <div class="category-form-modal__inner ion-padding">
+        <div class="category-form-modal__block">
+          <ion-input
+            [(ngModel)]="categoryFormName"
+            name="categoryName"
+            type="text"
+            fill="outline"
+            label="Nombre"
+            labelPlacement="stacked"
+            placeholder="Nombre de la categoría"
+            autocomplete="off"
+            enterkeyhint="next"
+          ></ion-input>
+        </div>
+
+        <div class="category-form-modal__block category-form-modal__block--color">
+          <div class="category-form-modal__color-row">
+            @if (categoryFormColorPreview(); as preview) {
+              <span
+                class="category-form-modal__preview-swatch"
+                [style.background]="preview"
+                aria-hidden="true"
+              ></span>
+            }
+            <ion-input
+              class="category-form-modal__color-field"
+              [(ngModel)]="categoryFormColorRaw"
+              name="categoryColorHex"
+              type="text"
+              fill="outline"
+              label="Color HEX (opcional)"
+              labelPlacement="stacked"
+              placeholder="#RRGGBB"
+              autocomplete="off"
+              autocapitalize="off"
+              spellcheck="false"
+              enterkeyhint="done"
+              aria-describedby="category-color-hint"
+            ></ion-input>
+          </div>
+        </div>
+
+        <p id="category-color-hint" class="category-form-modal__hint">
+          El color en hexadecimal debe empezar con <code>#</code> (por ejemplo
+          <code>#3880ff</code> o <code>#3af</code>). Déjalo vacío para que el color se asigne
+          automáticamente.
+        </p>
+
+        <ion-button expand="block" shape="round" class="category-form-modal__save" (click)="saveCategoryForm()">
+          Guardar
+        </ion-button>
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>
