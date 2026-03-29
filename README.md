@@ -1,95 +1,167 @@
-# Prueba To‑Do — Ionic, Angular y Cordova
+# Prueba técnica — Lista de tareas híbrida (Ionic + Angular + Cordova)
 
-Aplicación híbrida **To‑Do** con **Ionic 8**, **Angular 21**, **Apache Cordova**, almacenamiento local (**Ionic Storage**), **AngularFire** (Remote Config) y arquitectura orientada a **Clean Architecture** (core, servicios, features, shared).
+Aplicación híbrida de **lista de tareas** con **Ionic 8**, **Angular 21** y **Apache Cordova**; almacenamiento local (**@ionic/storage-angular**), integración con **Firebase** (**AngularFire**) y **Remote Config** (feature flag), y arquitectura alineada con **Clean Architecture** y buenas prácticas de rendimiento.
 
 ---
 
 ## Contenido
 
-1. [Requisitos previos](#requisitos-previos)  
-2. [Paso a paso: clonar y ejecutar](#paso-a-paso-clonar-y-ejecutar)  
-3. [Configuración de Firebase y Remote Config](#configuración-de-firebase-y-remote-config)  
-4. [Build para Cordova](#build-para-cordova)  
-5. [Integración Cordova, plataformas y plugins](#integración-cordova-plataformas-y-plugins)  
-6. [Firebase nativo (Cordova) vs Web SDK](#firebase-nativo-cordova-vs-web-sdk)  
-7. [Archivos de configuración relevantes](#archivos-de-configuración-relevantes)  
-8. [Decisiones técnicas](#decisiones-técnicas)  
+1. [Cumplimiento de los requisitos de la prueba](#cumplimiento-de-los-requisitos-de-la-prueba)  
+2. [Cómo ejecutar el proyecto](#cómo-ejecutar-el-proyecto)  
+3. [Entregables de la prueba](#entregables-de-la-prueba)  
+4. [Decisiones técnicas](#decisiones-técnicas)  
+5. [Preguntas de la prueba (desafíos, optimización y calidad)](#preguntas-de-la-prueba-desafíos-optimización-y-calidad)  
+6. [Control de versiones con Git](#control-de-versiones-con-git)  
+7. [Configuración de Firebase y Remote Config](#configuración-de-firebase-y-remote-config)  
+8. [Archivos de configuración relevantes](#archivos-de-configuración-relevantes)  
 9. [Desafíos y limitaciones conocidas](#desafíos-y-limitaciones-conocidas)  
-10. [Resolución de problemas](#resolución-de-problemas)  
+10. [Requisitos previos del entorno](#requisitos-previos-del-entorno)  
+11. [Licencia y autoría](#licencia-y-autoría)  
 
 ---
 
-## Requisitos previos
+## Cumplimiento de los requisitos de la prueba
 
-| Entorno | Detalle |
-|--------|---------|
-| **Node.js** | **LTS 20.x o 22.x** recomendado. Versiones non‑LTS (p. ej. 25) pueden mostrar advertencias con Angular. |
-| **npm** | Incluido con Node. Este repo usa **`.npmrc`** con `legacy-peer-deps=true` por compatibilidad **Angular 21 + AngularFire 20**. |
-| **Android** (opcional) | [Android Studio](https://developer.android.com/studio), `JAVA_HOME`, licencias SDK. |
-| **iOS** (solo macOS) | **Xcode** completo (App Store), `xcode-select` apuntando a `Xcode.app`, **CocoaPods** ≥ 1.12. |
+| Requisito | Estado | Ubicación / notas |
+|-----------|--------|-------------------|
+| **Lista de tareas: agregar, completar y eliminar** | Cumple | `src/app/features/tasks/pages/task-list/` — altas, casilla de completado y eliminación por ítem; opción «Eliminar todas» si el feature flag lo habilita. |
+| **Almacenamiento local** | Cumple | `LocalTaskRepository` / `LocalCategoryRepository` con `@ionic/storage-angular`; `provideIonicAppStorage()` y `provideLocalTaskAndCategoryRepositories()` en `app.config.ts`. |
+| **Categorías: CRUD** | Cumple | `src/app/features/categories/pages/category-list/` — creación y edición (diálogos), eliminación con gesto de deslizamiento; al eliminar una categoría se desvinculan las tareas asociadas. |
+| **Asignar categoría a cada tarea** | Cumple | Campo `categoryId` en el modelo `Task`; selector al crear la tarea en `task-list`. |
+| **Filtrar tareas por categoría** | Cumple | Segmento (Todas / Sin categoría / por identificador) y lista filtrada; lógica en `task-category-filter.ts` y lista precomputada para mejorar el rendimiento. |
+| **Cordova Android e iOS** | Cumple en estructura | `config.xml`, `ionic.config.json`, `package.json` (sección `cordova` y plataformas). |
+| **Firebase y Remote Config (feature flag)** | Cumple | `provideFirebaseAndRemoteConfig()`, `AppRemoteConfigService`, clave `feature_show_delete_all_tasks` en `remote-config-keys.ts`; plantilla de ejemplo `remoteconfig.template.json`. |
+| **Optimización de rendimiento** | Cumple | Rutas con **carga diferida (lazy)**; **OnPush** y `markForCheck`; **trackBy** en listas; **CDK Virtual Scroll** cuando hay **más de 100** tareas filtradas; lista filtrada sin pipe en la ruta crítica del virtual scroll. |
+| **Clean Architecture / SOLID** | Cumple | `core/` (modelos y puertos), `services/` (implementaciones), `providers/` (composición), `features/` y `shared/`. |
+| **README detallado** | Cumple | El presente documento. |
+| **Control de versiones en Git (repositorio público)** | Responsabilidad de entrega | Publicar en **GitHub o GitLab** con visibilidad pública y compartir el enlace en la entrega; el desarrollo se realiza en rama según las instrucciones del evaluador. |
+| **Capturas de pantalla o video** | Entrega externa al código | Incluir en la entrega (por ejemplo, enlace a Drive, enlace en el README o carpeta opcional `docs/media/`). |
+
+**Nota sobre credenciales:** la configuración web de Firebase se define en `src/environments/firebase.web.ts` (y archivos de entorno); no se recomienda publicar credenciales sensibles en repositorios públicos sin las debidas precauciones.
 
 ---
 
-## Paso a paso: clonar y ejecutar
+## Cómo ejecutar el proyecto
 
-Sigue este orden la primera vez (y cada vez que clones en una máquina nueva).
+### Requisitos mínimos
 
-### 1. Clonar el repositorio
+- **Node.js LTS** (se recomienda la rama 20.x o 22.x) y **npm**.  
+- El proyecto incluye **`.npmrc`** con `legacy-peer-deps=true` para compatibilidad entre **Angular 21** y **AngularFire 20**.
+
+### 1. Clonar el repositorio e instalar dependencias
 
 ```bash
-git clone <URL_DEL_REPO>
+git clone <URL_DEL_REPOSITORIO_PUBLICO>
 cd Prueba_tec
-```
-
-(ajusta el nombre de la carpeta si tu remoto usa otro path).
-
-### 2. Instalar dependencias
-
-```bash
 npm install
 ```
 
-No hace falta pasar `--legacy-peer-deps` manualmente si existe **`.npmrc`** en la raíz (ya está versionado).
+### 2. Configurar Firebase (obligatorio para iniciar la aplicación)
 
-### 3. Configurar Firebase para la app web
+1. Cree un proyecto en [Firebase Console](https://console.firebase.google.com/) y registre una aplicación **Web**.  
+2. Copie la configuración en **`src/environments/firebase.web.ts`**.  
+3. En **Remote Config**, cree el parámetro **`feature_show_delete_all_tasks`** (tipo booleano). Un valor `false` oculta la acción «Eliminar todas»; un valor `true` la muestra después de `fetch` y `activate`.  
+4. Opcional: sincronizar la plantilla mediante la CLI; el archivo **`remoteconfig.template.json`** en la raíz está alineado con `remote-config-keys.ts`.
 
-Edita **`src/environments/environment.ts`** y completa el objeto **`firebase`** con los datos de tu proyecto en [Firebase Console](https://console.firebase.google.com/) → configuración del proyecto → tu app Web.
-
-Sin valores válidos, **`initializeApp`** fallará al arrancar porque **`app.config.ts`** registra **`provideFirebaseAndRemoteConfig()`**.
-
-### 4. Remote Config (feature flags)
-
-1. En Firebase Console → **Remote Config**, crea el parámetro definido en **`src/app/core/config/remote-config-keys.ts`** (p. ej. `feature_show_delete_all_tasks`).  
-2. Los valores por defecto en cliente están en **`REMOTE_CONFIG_DEFAULTS`** hasta que se complete `fetchAndActivate`.
-
-### 5. Ejecutar en desarrollo (navegador)
+### 3. Desarrollo en el navegador
 
 ```bash
 npm start
-# equivalente a:
-npx ng serve
+# equivalente: npx ng serve
 ```
 
-Abre la URL que indique la CLI (suele ser `http://localhost:4200/`). La app redirige a **`/tasks`**.
+Abra la URL que indique la consola (habitualmente `http://localhost:4200/`). La aplicación redirige a **`/tasks`**. Rutas principales: **`/tasks`**, **`/categories`**.
 
-### 6. Compilar el frontend (salida para Cordova)
+### 4. Compilar el paquete de producción
 
 ```bash
 npx ng build
-# o desarrollo con sourcemaps:
+# entorno de desarrollo con source maps:
 npx ng build --configuration development
 ```
 
-La salida va a **`www/`** (ver `angular.json`). Esa carpeta está en **`.gitignore`**; se regenera con cada build.
+La salida se genera en **`www/`** (según `angular.json`). La carpeta **`www/`** figura en **`.gitignore`**.
 
-### 7. (Opcional) Vincular con Ionic Appflow
+---
 
-```bash
-npx ionic login
-npx ionic link
-```
+## Entregables de la prueba
 
-No es obligatorio para desarrollo local.
+De acuerdo con el enunciado, la entrega suele incluir:
+
+| # | Entregable | Acción en este repositorio / en la entrega |
+|---|------------|---------------------------------------------|
+| 1 | **Código fuente** en Git (repositorio **público**) | https://github.com/Alva09/To-do_app.git la rama que tiene el proyecto es la **full-app**|
+| 2 | **README** con instrucciones de ejecución y descripción de cambios | Este documento: ejecución, cumplimiento de requisitos, decisiones técnicas y respuestas a las preguntas planteadas. |
+| 3 | **Capturas de pantalla o video** de las funcionalidades | Se envían adjuntas al correo |
+| 4 | **Respuestas** a las preguntas técnicas | Sección [Preguntas de la prueba](#preguntas-de-la-prueba-desafíos-optimización-y-calidad). |
+
+---
+
+## Decisiones técnicas
+
+1. **Clean Architecture de carácter pragmático**  
+   - **Dominio** en `core/models` e **interfaces** (puertos `TaskRepository`, `CategoryRepository`).  
+   - **Infraestructura** en `services/` (Ionic Storage, integración con Firebase).  
+   - **Inversión de dependencias:** `app.config.ts` y `providers/repository.providers.ts` seleccionan la implementación sin acoplar las pantallas al detalle del almacenamiento.
+
+2. **Ionic y Angular en modo standalone**  
+   - Sin módulos de característica (NgModules); **carga diferida** mediante `loadChildren` hacia `TASKS_ROUTES` y `CATEGORIES_ROUTES` para reducir la carga inicial y generar fragmentos (chunks) separados.
+
+3. **Persistencia local**  
+   - **@ionic/storage-angular** con claves versionadas (`storage-keys.ts`) para facilitar migraciones futuras.
+
+4. **Firebase dentro del WebView**  
+   - **AngularFire** (`initializeApp` y `Remote Config`) para el feature flag; coherente con la aplicación Ionic/Cordova como **WebView**. El complemento **cordova-plugin-firebasex** queda disponible para capacidades **nativas** si se requiere; se evita duplicar la misma lógica del flag en dos capas.
+
+5. **Feature flag**  
+   - Parámetro **`feature_show_delete_all_tasks`:** valores predeterminados en el cliente (`REMOTE_CONFIG_DEFAULTS`) y `defaultConfig` en `getRemoteConfig` hasta que responda la red; observable `showDeleteAllTasks$` en la interfaz.
+
+6. **Rendimiento con listas extensas**  
+   - **OnPush** y **`markForCheck`** tras operaciones asíncronas.  
+   - **TrackBy** (`task.id`, `category.id`) en `@for` y `*cdkVirtualFor`.  
+   - **Lista filtrada materializada** en el componente (se evita ejecutar un pipe por cada fila del virtual scroll).  
+   - **Angular CDK Virtual Scroll** únicamente si hay **más de 100** elementos en el filtro activo; en ese modo, `ion-content` desactiva el desplazamiento nativo para que el CDK controle el viewport.  
+   - **`itemSize` fijo** (aproximadamente 88 px): equilibrio entre simplicidad y filas de altura variable.
+
+7. **Directorio de salida del build**  
+   - **Angular** genera el paquete en **`www/`**. El archivo **`firebase.json`** apunta a **`public/`** para pruebas con Firebase Hosting; no debe confundirse con la salida del CLI de Angular (`www/`).
+
+---
+
+## Preguntas de la prueba (desafíos, optimización y calidad)
+
+### ¿Cuáles fueron los principales desafíos al implementar las nuevas funcionalidades?
+
+- **Compatibilidad de versiones** entre **Angular 21** y **AngularFire 20** (dependencias peer), abordada mediante **`.npmrc`** con `legacy-peer-deps`.  
+- **Remote Config:** definir un flujo claro de **valores predeterminados** en el cliente mientras se completa `fetchAndActivate`, sin parpadeos en la interfaz ni depender exclusivamente de la red.  
+- **Listas extensas:** combinar **OnPush**, filtrado eficiente y **virtual scroll** sin deteriorar la experiencia con Ionic (`ion-content`, alturas de fila).
+
+### ¿Qué técnicas de optimización aplicó y por qué?
+
+| Ámbito | Técnica | Justificación |
+|--------|---------|---------------|
+| **Carga inicial** | Rutas con **carga diferida** por característica (`tasks`, `categories`) | Reduce el tamaño del bundle inicial y acelera el primer renderizado. |
+| **Actualización de la vista** | **OnPush** y **`markForCheck`** tras actualizar datos | Disminuye ciclos innecesarios de detección de cambios. |
+| **Listas** | **trackBy** / `track` estable por `id` | Reduce la reconciliación del DOM al actualizar colecciones. |
+| **Gran número de tareas** | Lista filtrada **precomputada** y **CDK Virtual Scroll** si hay **más de 100** elementos | Menor cantidad de nodos en el DOM y menor uso de memoria en listas largas. |
+| **Remote Config** | Valores predeterminados en **`defaultConfig`** y emisión inicial local | Experiencia de usuario predecible y menor bloqueo si la red falla o es lenta. |
+
+### ¿Cómo aseguró la calidad y la mantenibilidad del código?
+
+- **Separación por capas** (core, services, features, shared) y **contratos** explícitos (repositorios abstractos).  
+- **Nombres y claves centralizados** (`remote-config-keys.ts`, `storage-keys.ts`).  
+- **Tipado estricto** con TypeScript y plantillas alineadas con el compilador de Angular.  
+- **README** y plantilla (`remoteconfig.template.json`) para facilitar la reproducibilidad.  
+- **Compilación verificable** mediante `ng build`.
+
+---
+
+## Control de versiones con Git
+
+- Realizar **fork** del repositorio o clonar el remoto indicado por el evaluador.  
+- Desarrollar en una **rama** dedicada (TDO-001, TDO002, TDO003).  
+- Registrar **commits** atómicos con mensajes claros y descriptivos.  
+- Publicar el código en un repositorio **público** y enviar el **enlace**.
 
 ---
 
@@ -97,53 +169,15 @@ No es obligatorio para desarrollo local.
 
 | Archivo | Propósito |
 |---------|-----------|
-| `src/environments/environment.ts` | Credenciales **`firebase`** y flag **`production`** (afecta intervalo de fetch en Remote Config). |
-| `src/app/providers/firebase.providers.ts` | `provideFirebaseApp`, `provideRemoteConfig`, **`defaultConfig`** derivado de las constantes de Remote Config. |
-| `src/app/core/config/remote-config-keys.ts` | Nombres de parámetros y valores por defecto locales. |
-| `src/app/services/remote-config/app-remote-config.service.ts` | Emisión inicial + `fetchAndActivate`; observable **`showDeleteAllTasks$`**, etc. |
+| `src/environments/firebase.web.ts` | Configuración Firebase de la aplicación web. |
+| `src/environments/environment.ts` / `environment.prod.ts` | Indicador `production` y referencia a la configuración web. |
+| `src/app/core/config/remote-config-keys.ts` | Nombres de parámetros y valores predeterminados locales. |
+| `src/app/providers/firebase.providers.ts` | `provideFirebaseApp`, `provideRemoteConfig`, `defaultConfig`. |
+| `src/app/services/remote-config/app-remote-config.service.ts` | `fetchAndActivate` y observables (`showDeleteAllTasks$`). |
+| `remoteconfig.template.json` | Referencia para Remote Config (consola o `firebase deploy --only remoteconfig`). |
+| `firebase.json` | Hosting opcional (`public/`) y referencia a la plantilla de Remote Config. |
 
----
-
-## Build para Cordova
-
-1. Generar **`www/`**: `npx ng build` (o `npm run build`).  
-2. Preparar / ejecutar con Ionic + Cordova, por ejemplo:
-
-```bash
-npx ionic cordova prepare android
-npx ionic cordova run android
-```
-
-En iOS, tras añadir la plataforma y resolver Pods, abre el **`.xcworkspace`** en Xcode si hace falta.
-
----
-
-## Integración Cordova, plataformas y plugins
-
-```bash
-npx ionic integrations enable cordova --add
-npx ionic cordova platform add android
-npx ionic cordova platform add ios
-npx cordova platform ls
-```
-
-Scripts útiles en **`package.json`**:
-
-| Script | Descripción |
-|--------|-------------|
-| `npm start` | `ng serve` |
-| `npm run build` | `ng build` |
-| `npm run cordova:prepare` | `ionic cordova prepare` |
-| `npm run cordova:run:android` / `cordova:run:ios` | Ejecutar en dispositivo/emulador |
-| `npm run cordova:build:android` / `cordova:build:ios` | Builds de release |
-
----
-
-## Firebase nativo (Cordova) vs Web SDK
-
-- **AngularFire + SDK JS** en el WebView cubre **Remote Config** (y futuro Firestore en JS) sin depender del bridge nativo.  
-- **`cordova-plugin-firebasex`** aporta capacidades **nativas** (FCM, etc.). Evita duplicar la misma función con dos plugins distintos.  
-- Añade **`google-services.json`** / **`GoogleService-Info.plist`** según la guía del plugin si compilás nativo con Firebasex.
+**Comprobación del feature flag:** en Firebase Console → Remote Config, publique `feature_show_delete_all_tasks` con valor `true` y abra la aplicación: debe mostrarse la acción **«Eliminar todas»**. Con valor `false`, el botón no debe mostrarse (tras aplicar los valores remotos y según el comportamiento de la caché).
 
 ---
 
@@ -151,104 +185,34 @@ Scripts útiles en **`package.json`**:
 
 | Archivo | Descripción |
 |---------|-------------|
-| `angular.json` | Build Angular → **`www/`**, configs `development` / `production`. |
-| `tsconfig.json`, `tsconfig.app.json` | TypeScript del proyecto. |
+| `angular.json` | Build hacia **`www/`**, configuraciones `development` y `production`. |
 | `src/main.ts` | `bootstrapApplication(AppComponent, appConfig)`. |
-| `src/app/app.config.ts` | Providers: Ionic, Router, Firebase, Storage, repositorios. |
-| `src/app/app.routes.ts` | Rutas con **carga diferida** por feature. |
-| `config.xml` | Id de app Cordova, nombre, **iOS deployment-target** (≥ 15 para Firebase reciente), recursos. |
-| `ionic.config.json` | Tipo `angular`, integración `cordova`, id Appflow si aplica. |
+| `src/app/app.config.ts` | Proveedores globales de la aplicación. |
+| `src/app/app.routes.ts` | Rutas y carga diferida. |
+| `config.xml` | Identificador, nombre de la aplicación Cordova y recursos por plataforma. |
+| `ionic.config.json` | Tipo `angular`, integración con `cordova`. |
 | `.npmrc` | `legacy-peer-deps=true`. |
-
-El **widget id** de `config.xml` debe ser coherente con el registro en tiendas y con apps **Android/iOS** en Firebase si usás SDK nativo.
-
----
-
-## Decisiones técnicas
-
-1. **Clean Architecture ligera**  
-   - **Core**: modelos (`Task`, `Category`) y puertos abstractos (`TaskRepository`, `CategoryRepository`).  
-   - **Services**: implementaciones concretas (Ionic Storage, stubs Firebase).  
-   - **Composición** en `providers/`: `provideLocalTaskAndCategoryRepositories()` vs `provideFirebaseTaskAndCategoryRepositories()` para invertir dependencias (SOLID / DIP).
-
-2. **Standalone components + rutas lazy**  
-   - Sin NgModules de feature: `loadChildren` importa `TASKS_ROUTES` / `CATEGORIES_ROUTES` y genera **chunks** separados.
-
-3. **Persistencia local con `@ionic/storage-angular`**  
-   - Claves versionadas en `storage-keys.ts` para poder migrar esquemas.
-
-4. **Remote Config con AngularFire**  
-   - Defaults en cliente + `fetchAndActivate`; feature flag para UI sensible (p. ej. «Eliminar todas las tareas»).  
-   - **AngularFire 20** con **Angular 21** vía **`legacy-peer-deps`** hasta alineación oficial de peers.
-
-5. **Lista de tareas a escala**  
-   - **`ChangeDetectionStrategy.OnPush`** + `markForCheck` tras datos async.  
-   - **TrackBy** explícito en `@for` y `*cdkVirtualFor`.  
-   - **Angular CDK Virtual Scroll** si el filtro activo supera **100** ítems; lista filtrada precomputada para no ejecutar pipes pesados en cada fila virtual.  
-   - **`itemSize` fijo** (~88px): asunción de filas de altura uniforme.
-
-6. **Salida de build en `www/`**  
-   - Alineado con **Cordova** / flujo típico Ionic.
-
-7. **`.gitignore` de `www/`**  
-   - El artefacto de build no se versiona; cada entorno genera `www/` con `ng build`.
 
 ---
 
 ## Desafíos y limitaciones conocidas
 
-- **Peers Angular / AngularFire:** requiere `.npmrc` o flags manuales; conviene revisar cuando salga AngularFire con soporte peer explícito para tu versión de Angular.  
-- **Cordova + iOS:** CocoaPods, **deployment target** (Firebase 12.x → iOS ≥ 15) y **`xcode-select` apuntando a Xcode.app** suelen ser la fuente de errores en equipos nuevos.  
-- **Remote Config:** primer valor útil = defaults + caché; la red puede fallar; el servicio contempla fallback.  
-- **Virtual scroll CDK:** alturas de ítem muy variables o contenido dinámico alto pueden necesitar ajuste de **`itemSize`** u otra estrategia (paginación).  
-- **Firebase en WebView vs nativo:** definir qué API usás para cada capability evita configuraciones contradictorias.  
-- **Tareas en volumen extremo:** el repositorio local carga todo en memoria; para miles de registros habría que valorar paginación en Storage o pasar a backend/Firestore con consultas paged.
+- **Dependencias peer** entre AngularFire y Angular y la necesidad de `legacy-peer-deps`.  
+- **Virtual scroll:** `itemSize` fijo; títulos muy largos en varias líneas pueden requerir ajustes o paginación.  
+- **Repositorio local:** los datos residen en memoria en el almacenamiento del dispositivo; volúmenes extremos pueden requerir paginación o un backend.  
+- La carpeta **`public/`** en `firebase.json` corresponde a **Firebase Hosting** de prueba; el build de la aplicación Ionic utiliza **`www/`**.
 
 ---
 
-## Resolución de problemas
+## Requisitos previos del entorno
 
-### General
-
-- **`npx` / Node:** instalá Node LTS y verificá `node -v`, `npm -v`.  
-- **Android:** licencias y SDK desde Android Studio.
-
-### iOS: `xcodebuild` requiere Xcode (no solo Command Line Tools)
-
-Apuntá el developer directory a Xcode:
-
-```bash
-sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-xcode-select -p
-xcodebuild -version
-```
-
-Luego regenerá la plataforma si hace falta:
-
-```bash
-npx cordova platform remove ios
-npx ionic cordova platform add ios
-```
-
-### iOS: CocoaPods no encontrado
-
-```bash
-brew install cocoapods
-pod --version
-```
-
-### iOS: FirebaseCore y «higher minimum deployment target»
-
-En **`config.xml`** (plataforma `ios`) debe existir algo como:
-
-```xml
-<preference name="deployment-target" value="15.0" />
-```
-
-Si falló la instalación del plugin, limpiá plataforma/plugin y volvé a añadir (ver versiones anteriores del README o la documentación del plugin).
+| Componente | Detalle |
+|------------|---------|
+| **Node.js** | LTS **20.x o 22.x** (recomendado). |
+| **npm** | Incluido con la instalación de Node.js. |
 
 ---
 
-## Licencia y autor
+## Licencia y autoría
 
 Autor: Daniel Enrique Alvarado Fuentes

@@ -3,7 +3,6 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
-  OnInit,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -12,22 +11,27 @@ import {
   AlertController,
   IonButton,
   IonButtons,
+  IonCard,
+  IonCardContent,
   IonCheckbox,
   IonContent,
   IonHeader,
+  IonIcon,
   IonInput,
   IonItem,
   IonLabel,
   IonList,
+  IonMenu,
+  IonMenuButton,
   IonSegment,
   IonSegmentButton,
   IonSelect,
   IonSelectOption,
   IonTitle,
   IonToolbar,
+  MenuController,
+  ViewWillEnter,
 } from '@ionic/angular/standalone';
-import { forkJoin, of } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
 import { CategoryRepository } from '../../../../core/interfaces/category.repository';
 import type { Category } from '../../../../core/models/category.model';
 import { TaskRepository } from '../../../../core/interfaces/task.repository';
@@ -36,10 +40,14 @@ import {
   taskMatchesCategoryFilter,
   type TaskCategoryFilter,
 } from '../../../../core/utils/task-category-filter';
+import { taskCardSurfaceStyles } from '../../../../core/utils/category-appearance';
 import { AppRemoteConfigService } from '../../../../services/remote-config/app-remote-config.service';
 
 /** Umbral para activar virtual scroll (CDK) y desactivar scroll nativo de ion-content. */
 const VIRTUAL_SCROLL_THRESHOLD = 100;
+
+const TASK_LIST_CONTENT_ID = 'task-list-main';
+const TASK_CATEGORY_MENU_ID = 'task-category-menu';
 
 @Component({
   selector: 'app-task-list',
@@ -60,16 +68,23 @@ const VIRTUAL_SCROLL_THRESHOLD = 100;
     IonContent,
     IonSegment,
     IonSegmentButton,
-    IonList,
-    IonItem,
-    IonLabel,
+    IonCard,
+    IonCardContent,
     IonCheckbox,
     IonInput,
     IonSelect,
     IonSelectOption,
+    IonIcon,
+    IonMenu,
+    IonList,
+    IonItem,
+    IonLabel,
+    IonMenuButton,
   ],
 })
-export class TaskListPage implements OnInit {
+export class TaskListPage implements ViewWillEnter {
+  readonly taskListContentId = TASK_LIST_CONTENT_ID;
+  readonly taskCategoryMenuId = TASK_CATEGORY_MENU_ID;
   tasks: Task[] = [];
   /** Subconjunto filtrado (evita re-evaluar un pipe en cada ciclo de virtual scroll). */
   filteredTasks: Task[] = [];
@@ -87,10 +102,12 @@ export class TaskListPage implements OnInit {
     private readonly categoryRepo: CategoryRepository,
     readonly remoteConfig: AppRemoteConfigService,
     private readonly alertCtrl: AlertController,
+    private readonly menuCtrl: MenuController,
     private readonly cdr: ChangeDetectorRef,
   ) {}
 
-  ngOnInit(): void {
+  /** Recarga al entrar a la pantalla (p. ej. al volver de Categorías con una categoría nueva). */
+  ionViewWillEnter(): void {
     this.reload();
   }
 
@@ -106,6 +123,36 @@ export class TaskListPage implements OnInit {
   onCategoryFilterChange(): void {
     this.recomputeFiltered();
     this.cdr.markForCheck();
+  }
+
+  filterActive(value: TaskCategoryFilter): boolean {
+    return this.categoryFilter === value;
+  }
+
+  filterActiveCategory(categoryId: string): boolean {
+    return this.categoryFilter === categoryId;
+  }
+
+  async setCategoryFilter(value: TaskCategoryFilter): Promise<void> {
+    this.categoryFilter = value;
+    this.onCategoryFilterChange();
+    await this.menuCtrl.close(this.taskCategoryMenuId);
+  }
+
+  async closeCategoryMenu(): Promise<void> {
+    await this.menuCtrl.close(this.taskCategoryMenuId);
+  }
+
+  /** Texto compacto del filtro activo (visible en mobile bajo el encabezado). */
+  categoryFilterLabel(): string {
+    if (this.categoryFilter === 'all') {
+      return 'Todas las tareas';
+    }
+    if (this.categoryFilter === 'uncategorized') {
+      return 'Sin categoría';
+    }
+    const c = this.categories.find((x) => x.id === this.categoryFilter);
+    return c ? `${c.name}` : 'Todas las tareas';
   }
 
   reload(): void {
@@ -124,7 +171,18 @@ export class TaskListPage implements OnInit {
     if (categoryId == null || categoryId === '') {
       return 'Sin categoría';
     }
-    return this.categories.find((c) => c.id === categoryId)?.name ?? categoryId;
+    return (
+      this.categories.find((c) => c.id === categoryId)?.name ?? 'Sin categoría'
+    );
+  }
+
+  /** Fondo de tarjeta: blanco sin categoría; tinte suave del color de la categoría si aplica. */
+  taskSurface(task: Task): Record<string, string> {
+    return taskCardSurfaceStyles(
+      task.categoryId,
+      this.categories,
+      task.completed,
+    );
   }
 
   addTask(): void {
@@ -154,15 +212,33 @@ export class TaskListPage implements OnInit {
     });
   }
 
-  deleteTask(task: Task): void {
-    this.taskRepo.remove(task.id).subscribe(() => this.reload());
+  async confirmDeleteTask(task: Task): Promise<void> {
+    const alert = await this.alertCtrl.create({
+      cssClass: 'app-alert-rounded',
+      header: 'Eliminar tarea',
+      message:
+        'Esta tarea se va a eliminar de forma permanente. ¿Estás seguro?',
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Eliminar',
+          role: 'destructive',
+          handler: () => {
+            this.taskRepo.remove(task.id).subscribe(() => this.reload());
+            return true;
+          },
+        },
+      ],
+    });
+    await alert.present();
   }
 
   async confirmDeleteAllTasks(): Promise<void> {
     const alert = await this.alertCtrl.create({
+      cssClass: 'app-alert-rounded',
       header: 'Eliminar todas las tareas',
       message:
-        'Se borrarán todas las tareas guardadas localmente. Esta acción no se puede deshacer.',
+        'Se van a eliminar todas las tareas guardadas en este dispositivo. No podrás deshacer esta acción.',
       buttons: [
         { text: 'Cancelar', role: 'cancel' },
         {
@@ -179,17 +255,7 @@ export class TaskListPage implements OnInit {
   }
 
   private deleteAllTasks(): void {
-    this.taskRepo
-      .getAll()
-      .pipe(
-        switchMap((tasks) => {
-          if (!tasks.length) {
-            return of(undefined);
-          }
-          return forkJoin(tasks.map((t) => this.taskRepo.remove(t.id)));
-        }),
-      )
-      .subscribe(() => this.reload());
+    this.taskRepo.clearAll().subscribe(() => this.reload());
   }
 
   private recomputeFiltered(): void {

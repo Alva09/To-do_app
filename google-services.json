@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "138064480905",
+    "project_id": "todoapp-48a45",
+    "storage_bucket": "todoapp-48a45.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:138064480905:android:d6372eb5eb518236ac1458",
+        "android_client_info": {
+          "package_name": "io.ionic.starter"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "138064480905-b5a7tk8k4s029ffa8anfgulg62d1fmof.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBdY62k0zYhhn0qyaO2_5bWwqcEmDLSOO0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "138064480905-b5a7tk8k4s029ffa8anfgulg62d1fmof.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

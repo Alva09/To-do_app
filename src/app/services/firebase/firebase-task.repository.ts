@@ -24,4 +24,8 @@ export class FirebaseTaskRepository extends TaskRepository {
   remove(): Observable<void> {
     throw new Error('Implementar con AngularFire / SDK Firebase');
   }
+
+  clearAll(): Observable<void> {
+    throw new Error('Implementar con AngularFire / SDK Firebase');
+  }
 }

@@ -1,1 +1,20 @@
-{}
+{
+  "conditions": [],
+  "parameters": {
+    "feature_show_delete_all_tasks": {
+      "defaultValue": {
+        "value": "true"
+      },
+      "description": "Si es true, muestra el botón «Eliminar todas las tareas» en la barra de tareas (Remote Config / feature flag)."
+    }
+  },
+  "parameterGroups": {},
+  "version": {
+    "versionNumber": "1",
+    "updateTime": "2026-03-28T21:20:00.000Z",
+    "updateUser": {
+      "email": "daniel.alva211@gmail.com"
+    },
+    "description": "Plantilla alineada con src/app/core/config/remote-config-keys.ts. Publicar con Firebase Console o `firebase deploy --only remoteconfig`."
+  }
+}
